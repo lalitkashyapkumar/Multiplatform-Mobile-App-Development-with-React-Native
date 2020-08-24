@@ -10,6 +10,7 @@ import Home from "./HomeComponent";
 import Contact from './ContactComponent';
 import aboutUs from './AboutComponent';
 import Reservation from './ReservationComponent';
+import Favorites from './FavoriteComponent';
 import { connect } from 'react-redux';
 import { fetchDishes, fetchComments, fetchPromos, fetchLeaders } from '../redux/ActionCreators';
 
@@ -87,7 +88,7 @@ function MenuNavigatorScreen({ navigation }){
                 <MenuNavigator.Screen
                     name="DishDetail"
                     component={DishDetail}
-                    options={{headerTitle:"DishDetail"}}
+                    options={{headerTitle:"Dish Details"}}
                 />
                 
             
@@ -181,6 +182,41 @@ function ReservationNavigatorScreen({ navigation }){
         </ReservationNavigator.Navigator>
     )
 }
+
+const FavoriteNavigator = createStackNavigator();
+function FavoriteNavigatorScreen({ navigation }){
+    return(
+        <FavoriteNavigator.Navigator 
+            initialRouteName='Favorite'
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: "#512DA8"
+                },
+                headerTintColor: "#fff",
+                headerTitleStyle: {
+                    color: "#fff"            
+                }
+            }}>
+            <FavoriteNavigator.Screen
+                name="My Favorites"
+                component={Favorites}
+                options={{
+                    headerLeft:()=>(
+                        <Icon name="menu" size={24} 
+                    color= 'white'
+                    onPress={ () => navigation.toggleDrawer() } />
+                    )
+                }}
+            />
+            <FavoriteNavigator.Screen
+                name = "DishDetail"
+                component = {DishDetail}
+                options = {{ headerTitle: "Dish Details" }}
+            />
+        </FavoriteNavigator.Navigator>
+    )
+}
+
 const CustomDrawerContentComponent = (props) => (
     <ScrollView>
       <SafeAreaView style={styles.container} forceInset={{ top: 'always', horizontal: 'never' }}>
@@ -256,6 +292,22 @@ function MainNavigatorDrawer(){
                     drawerIcon: ({ tintColor, focused }) => (
                                 <Icon
                                     name='address-card'
+                                    type='font-awesome'            
+                                    size={22}
+                                    color={tintColor}
+                                />
+                    )
+            }}
+            />
+            <MainNavigator.Screen
+                name="Favorite"
+                component={FavoriteNavigatorScreen}
+                options={{
+                    title: 'Favorite',
+                    drawerLabel: 'My Favorites',
+                    drawerIcon: ({ tintColor, focused }) => (
+                                <Icon
+                                    name='heart'
                                     type='font-awesome'            
                                     size={22}
                                     color={tintColor}
