@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
-import { Text, View, ScrollView, StyleSheet, Picker, Switch, Button, Modal, Alert} from 'react-native';
-import DatePicker from 'react-native-datepicker'
+import { Text, View, ScrollView, StyleSheet, Picker, Switch, Button, Modal, Alert, TouchableOpacity,Platform} from 'react-native';
+import { Icon } from 'react-native-elements';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Animatable from 'react-native-animatable';
-
+import * as Permissions from 'expo-permissions';
+import { Notifications } from 'expo';
+import * as Calendar from 'expo-calendar';
+import Moment from 'moment';
 class Reservation extends Component {
 
     constructor(props) {
@@ -11,7 +15,8 @@ class Reservation extends Component {
         this.state = {
             guests: 1,
             smoking: false,
-            date: ''
+            date: new Date(),
+            mode: 'date'
             // showModal: false
         }
     }
@@ -22,7 +27,32 @@ class Reservation extends Component {
     // toggleModal() {
     //     this.setState({showModal: !this.state.showModal});
     // }
+    async obtainNotificationPermission() {
+        let permission = await Permissions.getAsync(Permissions.USER_FACING_NOTIFICATIONS);
+        if (permission.status !== 'granted') {
+            permission = await Permissions.askAsync(Permissions.USER_FACING_NOTIFICATIONS);
+            if (permission.status !== 'granted') {
+                Alert.alert('Permission not granted to show notifications');
+            }
+        }
+        return permission;
+    }
 
+    async presentLocalNotification(date) {
+        await this.obtainNotificationPermission();
+        Notifications.presentLocalNotificationAsync({
+            title: 'Your Reservation',
+            body: 'Reservation for '+ date + ' requested',
+            ios: {
+                sound: true
+            },
+            android: {
+                sound: true,
+                vibrate: true,
+                color: '#512DA8'
+            }
+        });
+    }
     handleReservation() {
         // console.log(JSON.stringify(this.state));
         // this.toggleModal();
@@ -32,12 +62,12 @@ class Reservation extends Component {
             [
                 { 
                     text: 'Cancel', 
-                    onPress: () => this.resetForm(),
+                    onPress: () => {this.resetForm();},
                     style: ' cancel'
                 },
                 {
                     text: 'OK',
-                    onPress: () => this.resetForm()
+                    onPress: () => {this.addReservationToCalendar(this.state.date); this.presentLocalNotification(this.state.date);this.resetForm();}
                 }
             ],
             { cancelable: false }
@@ -48,11 +78,46 @@ class Reservation extends Component {
         this.setState({
             guests: 1,
             smoking: false,
-            date: '',
-            showModal: false
+            date: new Date(),
+            showModal: false,
+            mode:'date'
         });
     }
-    
+    async obtainCalendarPermission(){
+        let permission = await Permissions.getAsync(Permissions.CALENDAR);
+        if (permission.status !== 'granted') {
+            permission = await Permissions.askAsync(Permissions.CALENDAR);
+            if (permission.status !== 'granted') {
+                Alert.alert('Permission not granted to access calender');
+            }
+        }
+        return permission;
+    }
+
+    async getDefaultCalendarSource() {
+        const defaultCalendars = await Calendar.getCalendarsAsync();
+        return defaultCalendars[0];
+      }
+    async  addReservationToCalendar(date) {
+        console.log('calender cretion executed');
+        await this.obtainCalendarPermission();
+        console.log('perssion handeled');
+        const defaultCalendarSource =
+        Platform.OS === 'ios'
+            ? await Calendar.getDefaultCalendarAsync()
+            : await this.getDefaultCalendarSource();
+        console.log('calender Id generated',defaultCalendarSource.id);
+
+        Calendar.createEventAsync(defaultCalendarSource.id,{
+            title: 'Con Fusion Table Reservation',
+            startDate: new Date(Date.parse(date)),
+            endDate: new Date(Date.parse(date) + (2*60*60*1000)),
+            timeZone: 'Asia/Hong_Kong',
+            location: '121, Clear Water Bay Road, Clear Water Bay, Kowloon, Hong Kong'
+        });
+
+
+    }
     render() {
         return(
             <ScrollView>
@@ -82,7 +147,7 @@ class Reservation extends Component {
                 </View>
                 <View style={styles.formRow}>
                 <Text style={styles.formLabel}>Date and Time</Text>
-                <DatePicker
+                {/* <DatePicker
                     style={{flex: 2, marginRight: 20}}
                     date={this.state.date}
                     format=''
@@ -104,7 +169,42 @@ class Reservation extends Component {
                     // ... You can check the source to find the other keys. 
                     }}
                     onDateChange={(date) => {this.setState({date: date})}}
-                />
+                /> */}
+                <TouchableOpacity style={styles.formItem}
+            style={{
+                padding: 7,
+                borderColor: '#512DA8',
+                borderWidth: 2,
+                flexDirection: "row"
+            }}
+            onPress={() => this.setState({ show: true, mode: 'date' })}
+      >
+          <Icon type='font-awesome' name='calendar' color='#512DA8' />
+          <Text >
+              {' ' + Moment(this.state.date).format('DD-MMM-YYYY h:mm A') }
+          </Text>
+      </TouchableOpacity>
+      {/* Date Time Picker */}
+      {this.state.show && (
+          <DateTimePicker
+              value={this.state.date}
+              mode={this.state.mode}
+              minimumDate={new Date()}
+              minuteInterval={30}
+              onChange={(event, date) => {
+                  if (date === undefined) {
+                      this.setState({ show: false });
+                  }
+                  else {
+                      this.setState({
+                          show: this.state.mode === "time" ? false : true,
+                          mode: "time",
+                          date: new Date(date)
+                      });
+                  }
+              }}
+          />
+      )}
                 </View>
                 <View style={styles.formRow}>
                 <Button
